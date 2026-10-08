@@ -1,0 +1,73 @@
+{
+    "total_quizzes": 12,
+    "total_questions": 74,
+    "correct_answers": 23,
+    "wrong_answers": 51,
+    "best_score": 7,
+    "best_percentage": 100.0,
+    "xp": 825,
+    "level": 4,
+    "title": "🧭 Explorador",
+    "current_streak": 1,
+    "best_streak": 1,
+    "last_quiz_date": "2026-09-10",
+    "categories_played": {
+        "Geral": 11,
+        "🧭 EXPLORAÇÃO": 1
+    },
+    "difficulty_played": {
+        "Fácil": 11,
+        "Médio": 0,
+        "Difícil": 1
+    },
+    "achievements": [
+        "first_quiz",
+        "level_3",
+        "hard_quiz",
+        "perfect_quiz",
+        "five_quizzes"
+    ],
+    "last_quiz": {
+        "mode": "🧭 EXPLORAÇÃO",
+        "difficulty": "Fácil",
+        "score": 2,
+        "total": 10,
+        "percentage": 20.0,
+        "xp_earned": 30,
+        "points": 150,
+        "points_breakdown": {
+            "base_points": 150,
+            "speed_bonus": 0
+        },
+        "max_points": 750,
+        "xp_breakdown": {
+            "base_xp": 20,
+            "completion_bonus": 10,
+            "performance_bonus": 0,
+            "perfect_bonus": 0,
+            "streak_bonus": 0,
+            "total_xp": 30
+        }
+    },
+    "rewards": [
+        {
+            "level": 2,
+            "name": "Aprendiz",
+            "reward": "Distintivo de Aprendiz",
+            "icon": "📚"
+        },
+        {
+            "level": 3,
+            "name": "Técnico",
+            "reward": "Distintivo Técnico",
+            "icon": "⚙️"
+        },
+        {
+            "level": 4,
+            "name": "Explorador",
+            "reward": "Distintivo Explorador",
+            "icon": "🧭"
+        }
+    ],
+    "player_name": "DaniloBR"
+}

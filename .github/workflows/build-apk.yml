@@ -1,115 +1,124 @@
-
-name: Build PetroQuiz APK
+name: PetroQuiz - Build Android APK
 
 on:
   workflow_dispatch:
   push:
-    branches: [main]
+    branches:
+      - main
 
 permissions:
   contents: read
 
+concurrency:
+  group: petroquiz-android-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
-  build:
+  build-apk:
+    name: Compilar PetroQuiz
     runs-on: ubuntu-22.04
     timeout-minutes: 360
 
     steps:
-      - name: Obter o código
+      - name: Obter o código do projeto
         uses: actions/checkout@v4
 
-      - name: Preparar Java
+      - name: Configurar Java
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: "17"
 
-      - name: Preparar Python
+      - name: Configurar Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
+          cache: pip
 
-      - name: Preparar Android SDK e NDK
-        uses: android-actions/setup-android@v3
-
-      - name: Instalar ferramentas Android
-        run: |
-          # Accept Android SDK licenses
-          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses || true
-    
-          # Install tools package first (if missing)
-          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "tools" || true
-    
-          # Install required packages
-          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" \
-            "platform-tools" \
-            "platforms;android-33" \
-            "build-tools;33.0.2" \
-            "ndk;25.2.9519653"
-
-          echo "ANDROIDSDK=$ANDROID_HOME" >> "$GITHUB_ENV"
-          echo "ANDROIDNDK=$ANDROID_HOME/ndk/25.2.9519653" >> "$GITHUB_ENV"
-          echo "ANDROIDAPI=33" >> "$GITHUB_ENV"
-          echo "ANDROIDMINAPI=24" >> "$GITHUB_ENV"
-
-      - name: Instalar dependências de compilação
+      - name: Instalar dependências do sistema
         run: |
           sudo apt-get update
           sudo apt-get install -y \
-            git zip unzip autoconf libtool pkg-config \
-            zlib1g-dev libncurses-dev cmake \
-            libffi-dev libssl-dev automake \
-            build-essential ccache rsync
+            git zip unzip \
+            build-essential \
+            autoconf automake libtool \
+            pkg-config cmake \
+            zlib1g-dev \
+            libncurses5-dev libncursesw5-dev \
+            libffi-dev libssl-dev \
+            libltdl-dev \
+            gettext autopoint \
+            ccache
 
-      - name: Instalar python-for-android
+      - name: Verificar ferramentas
         run: |
-          python -m pip install --upgrade pip
-          python -m pip install python-for-android
+          python --version
+          java -version
+          git --version
 
-      - name: Preparar ficheiros do PetroQuiz
+      - name: Instalar Buildozer e dependências Python
         run: |
-          mkdir -p appsrc
-          rsync -a ./ appsrc/ \
-            --exclude='.git/' \
-            --exclude='.buildozer/' \
-            --exclude='.venv313/' \
-            --exclude='venv/' \
-            --exclude='.venv/' \
-            --exclude='bin/' \
-            --exclude='__pycache__/' \
-            --exclude='*.pyc' \
-            --exclude='appsrc/'
+          python -m pip install --upgrade pip setuptools wheel
+          python -m pip install "Cython==0.29.36"
+          python -m pip install buildozer
 
-          test -f appsrc/main.py
-
-      - name: Compilar APK
+      - name: Validar ficheiros do PetroQuiz
         run: |
-          p4a apk \
-            --private "$GITHUB_WORKSPACE/appsrc" \
-            --package=org.thundercode.petroquiz \
-            --name="PetroQuiz" \
-            --version=0.1 \
-            --bootstrap=sdl2 \
-            --requirements=python3,kivy \
-            --arch=arm64-v8a \
-            --android-api=33 \
-            --ndk-dir="$ANDROIDNDK"
+          test -f main.py || {
+            echo "::error::main.py não foi encontrado na raiz do projeto."
+            exit 1
+          }
 
-      - name: Guardar APK
+          test -f buildozer.spec || {
+            echo "::error::buildozer.spec não foi encontrado na raiz do projeto."
+            exit 1
+          }
+
+          echo "Ficheiros principais encontrados."
+          echo "Conteúdo da raiz:"
+          ls -la
+
+      - name: Compilar APK de depuração
+        env:
+          BUILDOZER_WARN_ON_ROOT: "0"
+        run: |
+          buildozer android debug
+
+      - name: Verificar APK gerado
         if: success()
         run: |
           mkdir -p dist
-          find . -type f -name '*.apk' \
-            -not -path './.git/*' \
-            -not -path './appsrc/*' \
+          find bin -maxdepth 1 -type f -name "*.apk" \
             -exec cp {} dist/ \;
-          test -n "$(ls -A dist)"
 
-      - name: Disponibilizar APK
+          if ! find dist -maxdepth 1 -type f -name "*.apk" | grep -q .; then
+            echo "::error::A compilação terminou sem gerar nenhum APK."
+            echo "Conteúdo da pasta bin:"
+            ls -la bin || true
+            exit 1
+          fi
+
+          echo "APK(s) gerado(s):"
+          ls -lh dist/
+
+      - name: Guardar APK como artefacto
         if: success()
         uses: actions/upload-artifact@v4
         with:
-          name: PetroQuiz-APK
+          name: PetroQuiz-Android-APK
           path: dist/*.apk
           if-no-files-found: error
-          retention-days: 7
+          retention-days: 14
+
+      - name: Recolher informações em caso de falha
+        if: failure()
+        run: |
+          echo "A compilação falhou."
+          echo "Verifica o primeiro passo marcado a vermelho nos registos."
+          echo "Versões das ferramentas:"
+          python --version || true
+          java -version || true
+          echo "Conteúdo da pasta bin, se existir:"
+          ls -lah bin/ || true
+          echo "Últimos ficheiros de registo do Buildozer:"
+          find .buildozer -type f -name "*.log" -print 2>/dev/null | head -20 || true

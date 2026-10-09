@@ -32,9 +32,12 @@ jobs:
       - name: Preparar Android SDK e NDK
         uses: android-actions/setup-android@v3
 
-      
       - name: Instalar ferramentas Android
         run: |
+          # Accept Android SDK licenses
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses || true
+          
+          # Install required packages
           "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" \
             "platform-tools" \
             "platforms;android-33" \

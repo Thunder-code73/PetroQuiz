@@ -81,7 +81,8 @@ jobs:
         env:
           BUILDOZER_WARN_ON_ROOT: "0"
         run: |
-          buildozer android debug
+          set -o pipefail
+          yes | buildozer android debug
 
       - name: Verificar APK gerado
         if: success()
